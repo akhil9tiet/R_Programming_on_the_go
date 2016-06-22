@@ -1,0 +1,5 @@
+install.packages("sqldf")
+library(sqldf)
+acs <- read.csv("getdata_data_ss06pid.csv", header=T, sep=",")
+head(acs)
+sqldf("select pwgtp1 from acs where AGEP < 50")
