@@ -1,0 +1,124 @@
+---
+title: "HW1"
+author: "Akhil Gupta"
+date: "February 5, 2017"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+getwd();
+setwd("D:/Sem2/1. self/dataMininingPredictiveAnalysis/HW/1. HW1")
+a<-read.csv(file="AirlineData.csv", header=TRUE)
+
+attach(a)
+
+#deteming whether the categorical variables are Factor or not
+is.factor(VACATION);
+is.factor(SW);
+is.factor(SLOT);
+is.factor(GATE);
+###################################################
+#1a
+
+#fit<-lm(a$FARE~factor(a$VACATION)+factor(a$SW)+factor(a$SLOT)+factor(a$GATE)+a$COUPON+a$NEW+a$HI+a$S_INCOME+a$E_INCOME+a$S_POP+a$E_POP+a$DISTANCE+a$PAX)
+fit<-lm(FARE~factor(VACATION)+factor(SW)+factor(SLOT)+factor(GATE)+COUPON+NEW+HI+S_INCOME+E_INCOME+S_POP+E_POP+DISTANCE+PAX)
+
+summary(fit)$r.squared
+
+#1b
+summary(fit)$coefficients["factor(GATE)Free", "Estimate"]
+
+#1c
+
+newdata<-data.frame(VACATION="No", SW="No", SLOT="Free", GATE="Constrained", COUPON=1, NEW=3,  HI=6000, S_INCOME=2000,
+                E_INCOME=2000, S_POP=4000000, E_POP=7150000, 
+                DISTANCE=1000, PAX=6000)
+
+prediction<-predict(fit,newdata,interval = "confidence")
+prediction
+##################################################
+
+#2a
+pairs(~HI+DISTANCE+PAX+FARE)
+
+#2b
+plot(DISTANCE, col=ifelse(SW=="No", 'red','green'))
+
+#2c
+cor(a[c(5:6, 9:13, 16:17)],a[c(5:6, 9:13, 16:17)])
+##################################################
+
+#3
+
+fitsw<-lm(FARE~factor(SW))
+summary(fitsw)
+
+#Comparing coefficients of fitsw and fit
+
+#old model
+summary(fit)$coef["factor(SW)Yes","Estimate"]
+
+#new model
+summary(fitsw)$coef["factor(SW)Yes","Estimate"]
+
+#################################################
+
+#4
+
+fit_VACATIONSW<-lm(FARE~factor(VACATION)+factor(SW)+factor(SLOT)+factor(GATE)+COUPON+NEW+HI+S_INCOME+E_INCOME+S_POP+E_POP+DISTANCE+PAX+ factor(VACATION)*factor(SW))
+
+#4a
+summary(fit_VACATIONSW)$coef["factor(VACATION)Yes:factor(SW)Yes", "Estimate"]
+
+#4b
+summary(fit_VACATIONSW)
+summary(fit_VACATIONSW)$adj.r.squared
+
+
+
+#4c
+summary(fit_VACATIONSW)$coef["factor(VACATION)Yes","Estimate"]
+summary(fit_VACATIONSW)$coef["factor(SW)Yes","Estimate"]
+summary(fit_VACATIONSW)$coef["factor(VACATION)Yes:factor(SW)Yes","Estimate"]
+
+
+###################################################
+
+#5
+
+fit_a<-lm(FARE~factor(VACATION)+factor(SW)+HI+S_INCOME+E_INCOME+S_POP+E_POP+DISTANCE+PAX)
+
+summary(fit_a)
+
+summary(fit_a)$adj.r.squared
+summary(fit_a)$coef["S_INCOME","Pr(>|t|)"]
+summary(fit_a)$coef["E_INCOME","Pr(>|t|)"]
+
+#5a
+fit_b<-lm(FARE~factor(VACATION)+factor(SW)+HI+S_POP+E_POP+DISTANCE+PAX)
+
+summary(fit_b)
+summary(fit_b)$adj.r.squared
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
