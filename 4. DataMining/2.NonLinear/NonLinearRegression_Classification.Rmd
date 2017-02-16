@@ -1,0 +1,160 @@
+---
+title: "HW2"
+author: "Akhil Gupta"
+date: "2/11/2017"
+output: word_document
+---
+
+```{r}
+
+#1
+#1a
+set.seed(123457)
+
+getwd()
+setwd("D:/Sem2/1. self/dataMininingPredictiveAnalysis/HW/2. HW2")
+getwd()
+
+#1b
+pref<-read.csv('VoterPref.csv')
+head(pref)
+
+L_PREF<-pref$PREFERENCE=='Against'
+pref<-cbind(pref, L_PREF)
+
+
+#1c
+train_ind<-sample(seq_len(nrow(pref)),size= .7*nrow(pref))
+train<-pref[train_ind, ]
+test<-pref[-train_ind, ]
+nrow(train)
+nrow(test)
+
+##################################################
+#2a
+
+boxplot(INCOME~PREFERENCE,data=train, main="INCOME PREFERENCE", xlab="PREFERENCE", ylab="INCOME")
+
+boxplot(AGE~PREFERENCE,data=train, main="AGE PREFERENCE", xlab="PREFERENCE", ylab="AGE")
+
+#2b
+
+train_PEFERENCE_tab <- table(train$PREFERENCE)
+train_PEFERENCE_tab
+prop.table(train_PEFERENCE_tab)
+
+#2c
+
+train_PREFERENCE_GENDER_tab<- table(train$PREFERENCE, train$GENDER)
+train_PREFERENCE_GENDER_tab
+prop.table(train_PREFERENCE_GENDER_tab)
+
+#########################################
+
+#3
+#as.numeric(train$L_PREF)
+fit<-lm(as.numeric(L_PREF)~AGE +INCOME+factor(GENDER), data = train)
+summary(fit)
+
+#3a
+predicted_train<-predict(fit, newdata = train)
+actual_train<-as.numeric(train$L_PREF)
+Metrics<-c("AE","RMSE","MAE")
+x1<-mean(actual_train-predicted_train)
+x2<-sqrt(mean((actual_train-predicted_train)^2))
+x3<-mean(abs(actual_train-predicted_train))
+
+Values<- c(x1,x2,x3)
+X_train<-data.frame(Metrics, Values)
+X_train
+
+#**************************************#
+predicted_test<-predict(fit, newdata = test)
+actual_test<-as.numeric(test$L_PREF)
+Metrics<-c("AE","RMSE","MAE")
+x4<-mean(actual_test-predicted_test)
+x5<-sqrt(mean((actual_test-predicted_test)^2))
+x6<-mean(abs(actual_test-predicted_test))
+
+Values<- c(x4,x5,x6)
+X_test<-data.frame(Metrics, Values)
+X_test
+
+#3c
+
+t_train <- ifelse(predicted_train > 0.5,1,0)
+#t_train
+
+confusion_m_train<-table(as.numeric(train$L_PREF),t_train)
+confusion_m_train
+confusion_m_train_probability<-confusion_m_train/sum(confusion_m_train)
+confusion_m_train_probability
+
+
+t_test <- ifelse(predicted_test > 0.5,1,0)
+#t_test
+
+confusion_m_test<-table(as.numeric(test$L_PREF),t_test)
+confusion_m_test
+confusion_m_test_probability<-confusion_m_test/sum(confusion_m_test)
+confusion_m_test_probability
+
+
+
+
+
+#3d
+confusion_m_train_probability-confusion_m_test_probability
+
+##########################################
+#4
+#4a.
+fit_logistic <- glm(as.numeric(L_PREF)~AGE+INCOME+factor(GENDER), family = "binomial", data = train)
+summary(fit_logistic)
+
+#4d.
+predicted_train_logistic <- predict(fit_logistic, newdata = train, type = "response")
+
+tlogistic_train <- ifelse(predicted_train_logistic > 0.5,1,0)
+
+confusion_m_logistic_train<-table(as.numeric(train$L_PREF),tlogistic_train)
+confusion_m_logistic_train
+confusion_m_logistic_train_probability<-confusion_m_logistic_train/sum(confusion_m_logistic_train)
+confusion_m_logistic_train_probability
+
+#*****************************************#
+predicted_test_logistic <- predict(fit_logistic, newdata = test, type = "response")
+
+tlogistic_test <- ifelse(predicted_test_logistic > 0.5,1,0)
+
+confusion_m_logistic_test<-table(as.numeric(test$L_PREF),tlogistic_test)
+confusion_m_logistic_test
+confusion_m_logistic_test_probability<-confusion_m_logistic_test/sum(confusion_m_logistic_test)
+confusion_m_logistic_test_probability
+
+
+#4e
+compare_test<-confusion_m_logistic_train - confusion_m_train
+compare_test
+
+compare_train<-confusion_m_logistic_test-confusion_m_test
+compare_train
+
+#4f
+
+#p(Against) = 1/(1+e(-logit))
+#logit = 0.13300 + 0.23953(AGE) -0.13184(INCOME) - 0.53005(M=1,F=0)
+logit <- 0.13300 + 0.23953*36 -0.13184*70 + 0
+logit
+x <- 1 + exp(-logit)
+1/x
+
+#VERIGYING 4f
+spcase <- data.frame(AGE = 36,INCOME = 70,GENDER = "F")
+predicted_prob <- predict(fit_logistic, newdata = spcase, type= "response")
+predicted_prob
+
+
+```
+
+
