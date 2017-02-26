@@ -1,0 +1,205 @@
+---
+title: "HW3"
+author: "Akhil Gupta"
+date: "February 16, 2017"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+
+#install.packages("ROCR")
+library(ROCR)
+#
+
+
+getwd()
+setwd("D:/Sem2/1. self/dataMininingPredictiveAnalysis/HW/3. HW3")
+getwd()
+
+#1a
+pref<-read.csv('VoterPref.csv')
+attach(pref)
+
+PREFERENCE <- factor(PREFERENCE,levels=c("For","Against"))
+L_PREF <- (as.numeric(PREFERENCE)-1)
+
+pref<-cbind(pref,L_PREF)
+
+
+#1b
+set.seed(123457)
+
+#1c
+train_ind<-sample(seq_len(nrow(pref)),size= .7*nrow(pref))
+train<-pref[train_ind, ]
+test<-pref[-train_ind, ]
+nrow(train)
+nrow(test)
+  
+
+#2a
+fit_logistic <- glm(as.numeric(L_PREF)~AGE+INCOME+factor(GENDER), family = "binomial", data = train)
+summary(fit_logistic)
+
+predicted_train_logistic <- predict(fit_logistic, newdata = train, type = "response")
+
+tlogistic_train <- ifelse(predicted_train_logistic > 0.5,1,0)
+
+confusion_m_logistic_train<-table(as.numeric(train$L_PREF),tlogistic_train)
+confusion_m_logistic_train
+confusion_m_logistic_train_probability<-confusion_m_logistic_train/sum(confusion_m_logistic_train)
+confusion_m_logistic_train_probability
+
+#*****************************************#
+predicted_test_logistic <- predict(fit_logistic, newdata = test, type = "response")
+
+tlogistic_test <- ifelse(predicted_test_logistic > 0.5,1,0)
+
+confusion_m_logistic_test<-table(as.numeric(test$L_PREF),tlogistic_test)
+confusion_m_logistic_test
+confusion_m_logistic_test_probability<-confusion_m_logistic_test/sum(confusion_m_logistic_test)
+confusion_m_logistic_test_probability
+
+#2b.	Compute the sensitivity, specificity, accuracy, error rate, PPV, NPV for training data set
+
+accuracy_logistic_train<- ((confusion_m_logistic_train[1,1]+confusion_m_logistic_train[2,2])/(confusion_m_logistic_train[1,1]+confusion_m_logistic_train[2,1]+confusion_m_logistic_train[1,2]+confusion_m_logistic_train[2,2]))
+accuracy_logistic_train
+
+senstivity_logistic_train<-((confusion_m_logistic_train[2,2])/(confusion_m_logistic_train[2,1]+confusion_m_logistic_train[2,2]))
+senstivity_logistic_train
+
+specificity_logistic_train<-((confusion_m_logistic_train[1,1])/(confusion_m_logistic_train[1,1]+confusion_m_logistic_train[1,2]))
+specificity_logistic_train
+
+errorRate_logistic_train<-((confusion_m_logistic_train[1,2]+confusion_m_logistic_train[2,1])/(confusion_m_logistic_train[1,1]+confusion_m_logistic_train[2,1]+confusion_m_logistic_train[1,2]+confusion_m_logistic_train[2,2]))
+errorRate_logistic_train
+
+
+ppv_logistic_train<-((confusion_m_logistic_train[2,2])/(confusion_m_logistic_train[2,2]+confusion_m_logistic_train[1,2]))
+ppv_logistic_train
+
+npv_logistic_train<-((confusion_m_logistic_train[1,1])/(confusion_m_logistic_train[1,1]+confusion_m_logistic_train[2,1]))
+npv_logistic_train
+
+#2c. Plot the ROC curves for both the training and test data sets on the same graph (distinguishing with different colors). What can you infer from a scrutiny of this graph?
+
+cutoff <- seq(0, 1, length = 100)
+fpr_train <- numeric(100)
+tpr_train <- numeric(100)
+
+roc_table_train <- data.frame(Cutoff = cutoff, FPR = fpr_train,TPR = tpr_train)
+Actual_train <- train$PREFERENCE
+#Actual_train
+for (i in 1:100) {
+  roc_table_train$FPR[i] <- sum(predicted_train_logistic > cutoff[i] & Actual_train == "For")/sum(Actual_train == "For")
+  roc_table_train$TPR[i] <- sum(predicted_train_logistic > cutoff[i] & Actual_train == "Against")/sum(Actual_train == "Against")
+}
+
+plot(TPR ~ FPR, data = roc_table_train, type = "o",xlab="FPR",ylab="TPR",col="blue")
+abline(a = 0, b = 1, lty = 2,col="red")
+
+cutoff <- seq(0, 1, length = 100)
+FPR_test <- numeric(100)
+TPR_test <- numeric(100)
+Actual_test <- test$PREFERENCE
+roc_table_test <- data.frame(Cutoff = cutoff, FPR = FPR_test,TPR = TPR_test)
+
+for (i in 1:100) {
+  roc_table_test$FPR[i] <- sum(predicted_test_logistic > cutoff[i] & Actual_test == "For")/sum(Actual_test == "For")
+  roc_table_test$TPR[i] <- sum(predicted_test_logistic > cutoff[i] & Actual_test == "Against")/sum(Actual_test == "Against")
+}
+lines(TPR~FPR,data = roc_table_test, type="o",col="green")
+legend(0.4,0.4,c("Training", "Test"),lty=c(1,1), lwd=c(2.5,2.5), col=c("blue","green"))
+
+#2d.
+pred1<-prediction(predicted_train_logistic, train$L_PREF)
+perf_train <- performance(pred1, "acc")
+plot( perf_train , show.spread.at=seq(0, 1, by=0.1), col="blue")
+
+pred2<-prediction(predicted_test_logistic, test$L_PREF)
+perf_test <- performance( pred2, "acc")
+plot( perf_test , show.spread.at=seq(0, 1, by=0.1), col="green")
+
+#2e
+max_accuracy_train <- max(perf_train@y.values[[1]])
+max_accuracy_train
+Cutoff_train <- perf_train@x.values[[1]][which.max(perf_train@y.values[[1]])]
+Cutoff_train
+
+#2f.
+flag_test<-ifelse(predicted_test_logistic>0.4212197,1,0)
+flag_test_table<-table(as.numeric(test$L_PREF),flag_test)
+#flag_test_table
+accuracy_test<-(flag_test_table[1,1]+flag_test_table[2,2])/(flag_test_table[1,1]+flag_test_table[2,2]+flag_test_table[1,2]+flag_test_table[2,1])
+accuracy_test
+
+#3
+#3a
+cost <- matrix(c(0,1,4,0),nrow = 2, ncol = 2)
+cost
+miss_cost <- performance(pred1, "cost", cost.fp = 4, cost.fn = 1)
+cutoff_new <- pred1@cutoffs[[1]][which.min(miss_cost@y.values[[1]])]
+cutoff_new 
+
+#3b.
+flag_train_table <- ifelse(predicted_train_logistic > 0.8219539,1,0)
+flag_train_table
+confusion_logistic_train <- table(as.numeric(train$L_PREF),flag_train_table)
+confusion_logistic_train
+
+flag_test_table <- ifelse(predicted_test_logistic >0.8219539,1,0)
+flag_test_table
+confusion_logistic_test <- table(as.numeric(test$L_PREF),flag_test_table)
+confusion_logistic_test
+
+misclassif_cost_training <- confusion_logistic_train * cost
+misclassif_cost_training
+sum(misclassif_cost_training)
+
+misclassif_cost_testing <- confusion_logistic_test * cost
+misclassif_cost_testing
+sum(misclassif_cost_testing)
+
+#3c
+flag_train_table_new <- ifelse(predicted_train_logistic > 0.4625541,1,0)
+
+confusion_logistic_train_old <- table(as.numeric(train$L_PREF),flag_train_table_new)
+confusion_logistic_train_old
+
+flag_test_table_new<- ifelse(predicted_test_logistic >0.4625541,1,0)
+confusion_logistic_test_old <- table(as.numeric(test$PREF),flag_test_table_new)
+confusion_logistic_test_old
+
+misclassification_cost_training_old <- confusion_logistic_train_old * cost
+misclassification_cost_training_old
+sum(misclassification_cost_training_old)
+
+misclassification_cost_testing_old <- confusion_logistic_test_old * cost
+misclassification_cost_testing_old
+sum(misclassification_cost_testing_old)
+
+
+#4.
+#Training Data
+actual <- train$L_PREF
+df_train <- data.frame(predicted_train_logistic,actual)
+df_train_sort <- df_train[order(-predicted_train_logistic),]
+df_train_sort$Gains <- cumsum(df_train_sort$actual)
+plot(df_train_sort$Gains,type="n",main="Training Data Gains Chart",xlab="Number of Cases",ylab="Cumulative Success")
+lines(df_train_sort$Gains)
+abline(0,sum(df_train_sort$actual)/nrow(df_train_sort),lty = 2, col="blue")
+###################################################################################
+
+#Test Data
+actual <- test$L_PREF
+df_test <- data.frame(predicted_test_logistic,actual)
+df_test_sort <- df_test[order(-predicted_test_logistic),]
+df_test_sort$Gains <- cumsum(df_test_sort$actual)
+plot(df_test_sort$Gains,type="n",main="Test Data Gains Chart",xlab="Number of Cases",ylab="Cumulative Success")
+lines(df_test_sort$Gains)
+abline(0,sum(df_test_sort$actual)/nrow(df_test_sort),lty = 2, col="green")
+
+
+```
